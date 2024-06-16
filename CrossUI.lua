@@ -29,8 +29,11 @@ function CrossUI:CreateLib(title, theme)
 
     local selectedTheme = themes[Library.theme]
 
+    -- Create the ScreenGui
+    Library.screenGui = Instance.new("ScreenGui", game.Players.LocalPlayer:WaitForChild("PlayerGui"))
+
     -- Create the main window frame
-    Library.mainFrame = createSmoothFrame(game.Players.LocalPlayer:WaitForChild("PlayerGui"), UDim2.new(0, 600, 0, 400), UDim2.new(0.5, -300, 0.5, -200), selectedTheme.Primary)
+    Library.mainFrame = createSmoothFrame(Library.screenGui, UDim2.new(0, 600, 0, 400), UDim2.new(0.5, -300, 0.5, -200), selectedTheme.Primary)
 
     -- Create the title bar
     local titleBar = createSmoothFrame(Library.mainFrame, UDim2.new(1, 0, 0, 50), UDim2.new(0, 0, 0, 0), selectedTheme.Secondary)
