@@ -19,7 +19,9 @@ function Cross.new(title, theme)
     self.mainFrame.Position = UDim2.new(0.25, 0, 0.25, 0)
     self.mainFrame.BackgroundColor3 = self.theme.BackgroundColor
     self.mainFrame.BorderSizePixel = 0
-
+    self.mainFrame.Active = true
+    self.mainFrame.Draggable = true
+    
     self.titleBar = Instance.new("TextLabel", self.mainFrame)
     self.titleBar.Size = UDim2.new(1, 0, 0, 50)
     self.titleBar.BackgroundColor3 = self.theme.TitleBarColor
@@ -27,21 +29,60 @@ function Cross.new(title, theme)
     self.titleBar.TextColor3 = self.theme.TitleTextColor
     self.titleBar.Font = Enum.Font.SourceSansBold
     self.titleBar.TextSize = 24
-    
-    self.container = Instance.new("Frame", self.mainFrame)
-    self.container.Size = UDim2.new(1, 0, 1, -50)
-    self.container.Position = UDim2.new(0, 0, 0, 50)
-    self.container.BackgroundTransparency = 1
 
-    self.layout = Instance.new("UIListLayout", self.container)
-    self.layout.Padding = UDim.new(0, 10)
+    self.tabs = {}
+    self.currentTab = nil
     
     return self
 end
 
+-- Create a new tab
+function Cross:CreateTab(name)
+    local tab = {}
+
+    local button = Instance.new("TextButton", self.mainFrame)
+    button.Size = UDim2.new(0, 100, 0, 50)
+    button.Position = UDim2.new(#self.tabs * 0.2, 0, 0, 0)
+    button.BackgroundColor3 = self.theme.TabButtonColor
+    button.TextColor3 = self.theme.TabButtonTextColor
+    button.Text = name
+    button.Font = Enum.Font.SourceSans
+    button.TextSize = 24
+
+    local container = Instance.new("Frame", self.mainFrame)
+    container.Size = UDim2.new(1, 0, 1, -50)
+    container.Position = UDim2.new(0, 0, 0, 50)
+    container.BackgroundTransparency = 1
+    container.Visible = false
+
+    local layout = Instance.new("UIListLayout", container)
+    layout.Padding = UDim.new(0, 10)
+
+    tab.button = button
+    tab.container = container
+    tab.layout = layout
+
+    table.insert(self.tabs, tab)
+
+    button.MouseButton1Click:Connect(function()
+        if self.currentTab then
+            self.currentTab.container.Visible = false
+        end
+        tab.container.Visible = true
+        self.currentTab = tab
+    end)
+
+    if #self.tabs == 1 then
+        tab.container.Visible = true
+        self.currentTab = tab
+    end
+
+    return tab
+end
+
 -- Add Button
-function Cross:AddButton(name, callback)
-    local button = Instance.new("TextButton", self.container)
+function Cross:AddButton(tab, name, callback)
+    local button = Instance.new("TextButton", tab.container)
     button.Size = UDim2.new(1, 0, 0, 50)
     button.BackgroundColor3 = self.theme.ButtonColor
     button.TextColor3 = self.theme.ButtonTextColor
@@ -52,8 +93,8 @@ function Cross:AddButton(name, callback)
 end
 
 -- Add Toggle
-function Cross:AddToggle(name, default, callback)
-    local frame = Instance.new("Frame", self.container)
+function Cross:AddToggle(tab, name, default, callback)
+    local frame = Instance.new("Frame", tab.container)
     frame.Size = UDim2.new(1, 0, 0, 50)
     frame.BackgroundTransparency = 1
     
@@ -77,48 +118,31 @@ function Cross:AddToggle(name, default, callback)
     end)
 end
 
--- Add Slider
-function Cross:AddSlider(name, min, max, default, callback)
-    local frame = Instance.new("Frame", self.container)
+-- Add Textbox
+function Cross:AddTextbox(tab, name, callback)
+    local frame = Instance.new("Frame", tab.container)
     frame.Size = UDim2.new(1, 0, 0, 50)
     frame.BackgroundTransparency = 1
     
     local label = Instance.new("TextLabel", frame)
-    label.Size = UDim2.new(0.8, 0, 1, 0)
+    label.Size = UDim2.new(0.3, 0, 1, 0)
     label.BackgroundTransparency = 1
     label.Text = name
     label.TextColor3 = self.theme.LabelColor
     label.Font = Enum.Font.SourceSans
     label.TextSize = 24
 
-    local slider = Instance.new("Frame", frame)
-    slider.Size = UDim2.new(0.2, 0, 0.4, 0)
-    slider.Position = UDim2.new(0.8, 0, 0.3, 0)
-    slider.BackgroundColor3 = self.theme.SliderBackgroundColor
-    
-    local knob = Instance.new("Frame", slider)
-    knob.Size = UDim2.new((default - min) / (max - min), 0, 1, 0)
-    knob.BackgroundColor3 = self.theme.SliderKnobColor
-    knob.BorderSizePixel = 0
-
-    slider.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            local function moveKnob(input)
-                local position = math.clamp((input.Position.X - slider.AbsolutePosition.X) / slider.AbsoluteSize.X, 0, 1)
-                knob.Size = UDim2.new(position, 0, 1, 0)
-                local value = min + position * (max - min)
-                callback(value)
-            end
-            
-            moveKnob(input)
-            local moveConnection = slider.InputChanged:Connect(moveKnob)
-            local releaseConnection
-            releaseConnection = game:GetService("UserInputService").InputEnded:Connect(function(endInput)
-                if endInput.UserInputType == Enum.UserInputType.MouseButton1 then
-                    moveConnection:Disconnect()
-                    releaseConnection:Disconnect()
-                end
-            end)
+    local textbox = Instance.new("TextBox", frame)
+    textbox.Size = UDim2.new(0.7, 0, 0.8, 0)
+    textbox.Position = UDim2.new(0.3, 0, 0.1, 0)
+    textbox.BackgroundColor3 = self.theme.TextboxColor
+    textbox.TextColor3 = self.theme.TextboxTextColor
+    textbox.Text = ""
+    textbox.Font = Enum.Font.SourceSans
+    textbox.TextSize = 24
+    textbox.FocusLost:Connect(function(enterPressed)
+        if enterPressed then
+            callback(textbox.Text)
         end
     end)
 end
@@ -134,8 +158,10 @@ Cross.Themes = {
         LabelColor = Color3.fromRGB(255, 255, 255),
         ToggleOnColor = Color3.fromRGB(0, 255, 0),
         ToggleOffColor = Color3.fromRGB(255, 0, 0),
-        SliderBackgroundColor = Color3.fromRGB(45, 45, 45),
-        SliderKnobColor = Color3.fromRGB(255, 255, 255)
+        TextboxColor = Color3.fromRGB(45, 45, 45),
+        TextboxTextColor = Color3.fromRGB(255, 255, 255),
+        TabButtonColor = Color3.fromRGB(50, 50, 50),
+        TabButtonTextColor = Color3.fromRGB(255, 255, 255)
     }
 }
 
